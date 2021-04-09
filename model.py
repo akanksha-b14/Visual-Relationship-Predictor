@@ -1,29 +1,54 @@
-from keras.layers import LSTM
-from keras.layers import TimeDistributed, Input, concatenate, Flatten, Embedding
+from keras.layers import Input, Concatenate
+from keras.layers import LSTM, Bidirectional
 from keras.layers.core import Dense
-from keras.models import Model, Sequential
-from keras.preprocessing import image
+from keras.models import Model
 from tensorflow.keras.layers import Input
 from tensorflow.keras.models import Model
 
-def lstm_model():    
-    encoder_inputs = Input(shape=(None, num_encoder_tokens))
-    # encoder_input_feature = Dense(2058, activation = 'relu')(encoder_inputs)
-    encoder = Bidirectional(LSTM(100, return_state=True, dropout=0.5, recurrent_dropout=0.5))
-    encoder_outputs, forward_h, forward_c, backward_h, backward_c = encoder(encoder_inputs)
+class EncoderDecoder:
+    def __init__(self, output_seq_length):
+        self.output_seq_length = output_seq_length
+        self.encoder = Bidirectional(LSTM(100, return_state=True, dropout=0.5, recurrent_dropout=0.5))
+        self.decoder_input_dense = Dense(200, activation = 'relu')
+        self.decoder = LSTM(200, return_sequences=True, return_state=True, dropout=0.5, recurrent_dropout=0.5)
+        self.decoder_output_dense =  Dense(output_seq_length, activation='softmax')
 
-    state_h = Concatenate()([forward_h, backward_h])
-    state_c = Concatenate()([forward_c, backward_c])
-    encoder_states = [state_h, state_c]
-    # encoder_outputs, state_h, state_c = encoder(encoder_inputs)
-    # encoder_states = [state_h, state_c]
+    def load_training_model(self):
+        encoder_inputs = Input(shape=(None, self.output_seq_length))
+        encoder_outputs, forward_h, forward_c, backward_h, backward_c = self.encoder(encoder_inputs)
 
-    decoder_inputs = Input(shape=(None, num_decoder_tokens))
-    decoder_input_dense = Dense(200, activation = 'relu')
-    decoder_input_feature = decoder_input_dense(decoder_inputs)
-    decoder_lstm = LSTM(200, return_sequences=True, return_state=True, dropout=0.5, recurrent_dropout=0.5)
-    decoder_outputs, _, _ = decoder_lstm(decoder_input_feature, initial_state=encoder_states)
-    decoder_dense = Dense(num_decoder_tokens, activation='softmax')
-    decoder_outputs = decoder_dense(decoder_outputs)
-    model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
-    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        state_h = Concatenate()([forward_h, backward_h])
+        state_c = Concatenate()([forward_c, backward_c])
+        encoder_states = [state_h, state_c]
+
+        decoder_inputs = Input(shape=(None, self.output_seq_length))
+        decoder_input_feature = self.decoder_input_dense(decoder_inputs)
+        decoder_outputs, _, _ = self.decoder(decoder_input_feature, initial_state=encoder_states)
+        decoder_outputs = self.decoder_output_dense(decoder_outputs)
+        model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
+        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+        return model
+
+    def load_test_encoder(self):
+        encoder_inputs = Input(shape=(None, self.output_seq_length))
+        encoder_outputs, forward_h, forward_c, backward_h, backward_c = self.encoder(encoder_inputs)
+
+        state_h = Concatenate()([forward_h, backward_h])
+        state_c = Concatenate()([forward_c, backward_c])
+        encoder_states = [state_h, state_c]
+        encoder_model = Model(encoder_inputs, encoder_states)
+
+    def load_test_decoder(self):
+        decoder_state_input_h = Input(shape=(200,))
+        decoder_state_input_c = Input(shape=(200,))
+        decoder_inputs = Input(shape=(None, self.output_seq_length))
+        decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
+        decoder_input_feature = self.decoder_input_dense(decoder_inputs)
+        decoder_outputs, state_h, state_c = self.decoder(decoder_input_feature, initial_state=decoder_states_inputs)
+
+        decoder_states = [state_h, state_c]
+        decoder_outputs = self.decoder_output_dense(decoder_outputs)
+        decoder_model = Model([decoder_inputs] + decoder_states_inputs, [decoder_outputs] + decoder_states)
+
+        return decoder_model
