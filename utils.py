@@ -27,7 +27,7 @@ def read_videos(video_ids, base_dir):
 
 
 def get_object_idx_map():
-    with open('object1_object2.json') as f:
+    with open('../object1_object2.json') as f:
         object_idx_map = json.load(f)
     idx_object_map = {}
     for key in object_idx_map.keys():
@@ -37,7 +37,7 @@ def get_object_idx_map():
 
 
 def get_relationship_idx_map():
-    with open('relationship.json') as f:
+    with open('../relationship.json') as f:
         relationship_idx_map = json.load(f)
     idx_relation_map = {}
     for key in relationship_idx_map.keys():
@@ -47,7 +47,7 @@ def get_relationship_idx_map():
 
 
 def get_given_annotations():
-    with open('training_annotation.json') as f:
+    with open('../updated_training_annotations.json') as f:
         given_annotation = json.load(f)
     return given_annotation
 

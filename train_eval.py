@@ -7,7 +7,7 @@ import pandas as pd
 from model import EncoderDecoder
 from data_augmentation import augment
 
-train_base_dir = 'train/train'
+train_base_dir = '../train/train'
 max_encoder_seq_length = 30
 max_decoder_seq_length = 3
 feature_vector_length = 2048
@@ -16,8 +16,7 @@ NUM_FRAMES = 30
 
 video_ids = utils.get_video_ids(train_base_dir)
 new_annotation = utils.get_new_annotation()
-encoder_decoder = EncoderDecoder(output_seq_length)
-
+encoder_decoder = EncoderDecoder(output_seq_length, feature_vector_length)
 input_videos = []
 target_texts = []
 
@@ -44,6 +43,7 @@ for i, (input_video, target_text) in enumerate(zip(input_videos, target_texts)):
 batch_size = 5
 epochs = 8
 model = encoder_decoder.load_training_model()
+print(model.summary())
 model.fit([encoder_input_data, decoder_input_data], decoder_target_data,
          batch_size=batch_size,
          epochs=epochs)
@@ -66,7 +66,7 @@ for j in range(0, 10):
     decoder_target_data = np.zeros((len(input_videos), max_decoder_seq_length, output_seq_length), dtype='float32')
 
     for i, (input_video, target_text) in enumerate(zip(input_videos, target_texts)):
-        video = feature_extraction.read_videos([input_video],train_base_dir)
+        video = utils.read_videos([input_video],train_base_dir)
         aug_video = augment(video[0])
         encoder_input_data[i] = feature_model.predict([feature_extraction.preprocess_videos(aug_video)])
         for t, annotation in enumerate(target_text):
@@ -82,11 +82,10 @@ for j in range(0, 10):
     print("*************** Next Augmentation **********************")
 
 #predicting results on test data
-test_base_dir = 'test/test'
-relationship_idx_map = utils.get_relationship_idx_map()
-object_idx_map = utils.get_object_idx_map()
+test_base_dir = '../test/test'
+relationship_idx_map = utils.get_relationship_idx_map()[0]
+object_idx_map = utils.get_object_idx_map()[0]
 idx_vocab_map = utils.get_idx_vocab_map()
-
 encoder_model = encoder_decoder.load_test_encoder()
 decoder_model = encoder_decoder.load_test_decoder()
 
@@ -109,8 +108,8 @@ test_video_ids = utils.get_video_ids(test_base_dir)
 test_video_ids.sort()
 result = []
 count = 0
-for id in test_video_ids:
-    video = utils.read_videos([id], test_base_dir)
+for vid_id in test_video_ids:
+    video = utils.read_videos([vid_id], test_base_dir)
     pred = np.zeros((3, 3, 117))
     for i in range(0, 3):
         if i == 0:
@@ -136,4 +135,5 @@ for id in test_video_ids:
 
 
 df = pd.DataFrame(result)
+print(df)
 df.to_csv('predictions.csv', index=False)
