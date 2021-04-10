@@ -27,14 +27,14 @@ for id in video_ids:
     input_videos.append(input_video)
     target_texts.append(target_text)
     
-encoder_input_data = np.zeros((len(input_videos), max_encoder_seq_length, feature_vector_length), dtype='float32')
+encoder_input_data = np.zeros((len(input_videos), max_encoder_seq_length, 224, 224, 3), dtype='float32')
 decoder_input_data = np.zeros((len(input_videos), max_decoder_seq_length, output_seq_length), dtype='float32')
 decoder_target_data = np.zeros((len(input_videos), max_decoder_seq_length, output_seq_length), dtype='float32')
 
-feature_model = feature_extraction.resnet_feature_extractor()
+# feature_model = feature_extraction.resnet_feature_extractor()
 for i, (input_video, target_text) in enumerate(zip(input_videos, target_texts)):
     video = feature_extraction.load_videos([input_video],train_base_dir)
-    encoder_input_data[i] = feature_model.predict([video])
+    encoder_input_data[i] = video
     for t, annotation in enumerate(target_text):
         decoder_target_data[i, t, annotation] = 1
         if t > 0:
@@ -50,36 +50,36 @@ model.fit([encoder_input_data, decoder_input_data], decoder_target_data,
 
 
 # training model on the augmented data
-batch_size = 5
-epochs = 2
-random.shuffle(video_ids)
-for j in range(0, 10):
-    input_videos = []
-    target_texts = []
-    
-    for id in video_ids:
-        input_videos.append(id)
-        target_texts.append(new_annotation[id])
-    
-    encoder_input_data = np.zeros((len(input_videos), max_encoder_seq_length, feature_vector_length), dtype='float32')
-    decoder_input_data = np.zeros((len(input_videos), max_decoder_seq_length, output_seq_length), dtype='float32')
-    decoder_target_data = np.zeros((len(input_videos), max_decoder_seq_length, output_seq_length), dtype='float32')
-
-    for i, (input_video, target_text) in enumerate(zip(input_videos, target_texts)):
-        video = utils.read_videos([input_video],train_base_dir)
-        aug_video = augment(video[0])
-        encoder_input_data[i] = feature_model.predict([feature_extraction.preprocess_videos(aug_video)])
-        for t, annotation in enumerate(target_text):
-            decoder_target_data[i, t, annotation] = 1
-            if t > 0:
-                decoder_input_data[i, t] = decoder_target_data[i, t-1]
-
-
-    model.fit([encoder_input_data, decoder_input_data], decoder_target_data,
-             batch_size=batch_size,
-             epochs=epochs, validation_split=0.2)
-    
-    print("*************** Next Augmentation **********************")
+# batch_size = 5
+# epochs = 2
+# random.shuffle(video_ids)
+# for j in range(0, 10):
+#     input_videos = []
+#     target_texts = []
+#
+#     for id in video_ids:
+#         input_videos.append(id)
+#         target_texts.append(new_annotation[id])
+#
+#     encoder_input_data = np.zeros((len(input_videos), max_encoder_seq_length, feature_vector_length), dtype='float32')
+#     decoder_input_data = np.zeros((len(input_videos), max_decoder_seq_length, output_seq_length), dtype='float32')
+#     decoder_target_data = np.zeros((len(input_videos), max_decoder_seq_length, output_seq_length), dtype='float32')
+#
+#     for i, (input_video, target_text) in enumerate(zip(input_videos, target_texts)):
+#         video = utils.read_videos([input_video],train_base_dir)
+#         aug_video = augment(video[0])
+#         encoder_input_data[i] = feature_model.predict([feature_extraction.preprocess_videos(aug_video)])
+#         for t, annotation in enumerate(target_text):
+#             decoder_target_data[i, t, annotation] = 1
+#             if t > 0:
+#                 decoder_input_data[i, t] = decoder_target_data[i, t-1]
+#
+#
+#     model.fit([encoder_input_data, decoder_input_data], decoder_target_data,
+#              batch_size=batch_size,
+#              epochs=epochs, validation_split=0.2)
+#
+#     print("*************** Next Augmentation **********************")
 
 #predicting results on test data
 test_base_dir = '../test/test'
@@ -116,7 +116,7 @@ for vid_id in test_video_ids:
             aug_video = video[0]
         else:
             aug_video = augment(video[0])
-        input_seq = feature_model.predict([feature_extraction.preprocess_videos(aug_video)])
+        input_seq = aug_video
         decode_sequence(input_seq, pred, i)
     for i in range(0, 3):
         row = {}
