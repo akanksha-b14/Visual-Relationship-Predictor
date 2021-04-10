@@ -6,6 +6,7 @@ import pandas as pd
 
 from model import EncoderDecoder
 from data_augmentation import augment
+from data_generator import Mygenerator
 
 train_base_dir = '../train/train'
 max_encoder_seq_length = 30
@@ -17,6 +18,7 @@ NUM_FRAMES = 30
 video_ids = utils.get_video_ids(train_base_dir)
 new_annotation = utils.get_new_annotation()
 encoder_decoder = EncoderDecoder(output_seq_length, feature_vector_length)
+
 input_videos = []
 target_texts = []
 
@@ -26,29 +28,35 @@ for id in video_ids:
     target_text = new_annotation[id]
     input_videos.append(input_video)
     target_texts.append(target_text)
-    
-encoder_input_data = np.zeros((len(input_videos), max_encoder_seq_length, 224, 224, 3), dtype='float32')
-decoder_input_data = np.zeros((len(input_videos), max_decoder_seq_length, output_seq_length), dtype='float32')
-decoder_target_data = np.zeros((len(input_videos), max_decoder_seq_length, output_seq_length), dtype='float32')
+
+
+#encoder_input_data = np.zeros((len(input_videos), max_encoder_seq_length, 224, 224, 3), dtype='float32')
+#decoder_input_data = np.zeros((len(input_videos), max_decoder_seq_length, output_seq_length), dtype='float32')
+#decoder_target_data = np.zeros((len(input_videos), max_decoder_seq_length, output_seq_length), dtype='float32')
 
 # feature_model = feature_extraction.resnet_feature_extractor()
-for i, (input_video, target_text) in enumerate(zip(input_videos, target_texts)):
-    video = feature_extraction.load_videos([input_video],train_base_dir)
-    encoder_input_data[i] = video
-    for t, annotation in enumerate(target_text):
-        decoder_target_data[i, t, annotation] = 1
-        if t > 0:
-            decoder_input_data[i, t] = decoder_target_data[i, t-1]
+#for i, (input_video, target_text) in enumerate(zip(input_videos, target_texts)):
+#    video = feature_extraction.load_videos([input_video],train_base_dir)
+#    encoder_input_data[i] = video
+#    for t, annotation in enumerate(target_text):
+#        decoder_target_data[i, t, annotation] = 1
+#        if t > 0:
+#            decoder_input_data[i, t] = decoder_target_data[i, t-1]
 
 batch_size = 5
-epochs = 8
+epochs = 3
 model = encoder_decoder.load_training_model()
+
 print(model.summary())
-model.fit([encoder_input_data, decoder_input_data], decoder_target_data,
-         batch_size=batch_size,
-         epochs=epochs)
+#model.fit([encoder_input_data, decoder_input_data], decoder_target_data,
+#         batch_size=batch_size,
+#         epochs=epochs)
 
+data_generator = Mygenerator(input_videos, target_texts, batch_size)
 
+model.fit_generator(data_generator, epochs=epochs)
+
+model.save('cnn_lstm_model_2.h5')
 # training model on the augmented data
 # batch_size = 5
 # epochs = 2
@@ -116,11 +124,11 @@ for vid_id in test_video_ids:
             aug_video = video[0]
         else:
             aug_video = augment(video[0])
-        input_seq = aug_video
+        input_seq = feature_extraction.preprocess_videos(aug_video)
         decode_sequence(input_seq, pred, i)
     for i in range(0, 3):
         row = {}
-        row['ID'] = count + i
+        row['ID'] = count
         ids = []
         predictions = utils.validation_accuracy(np.max(pred[i], axis=0), i)
         for id in predictions:

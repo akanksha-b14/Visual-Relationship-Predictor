@@ -1,7 +1,7 @@
 import os
 
 import numpy as np
-from keras.applications.resnet50 import ResNet50
+from keras.applications import ResNet152
 from keras.applications.vgg19 import preprocess_input
 from keras.layers import TimeDistributed, Input
 from keras.models import Model
@@ -45,10 +45,10 @@ def preprocess_videos(read_frames):
 
 def resnet_feature_extractor():
     video_input = Input(shape=(30, 224, 224, 3))
-    model = ResNet50(weights='imagenet')
+    model = ResNet152(weights='imagenet')
     model = Model(inputs=model.inputs, outputs=model.layers[-2].output)
 
-    for layer in model.layers:
+    for layer in model.layers[:-5]:
         layer.trainable = False
 
     encoded_frame_sequence = TimeDistributed(model)(video_input)
@@ -56,4 +56,3 @@ def resnet_feature_extractor():
     feature_extract_model = Model(inputs=video_input, outputs=encoded_frame_sequence)
 
     return feature_extract_model
-
