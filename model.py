@@ -27,7 +27,8 @@ class EncoderDecoder:
         decoder_outputs, _, _ = self.decoder(decoder_input_feature, initial_state=encoder_states)
         decoder_outputs = self.decoder_output_dense(decoder_outputs)
         model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
-        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        adam = keras.optimizers.Adam(lr=0.0002,beta_1=0.9,beta_2=0.9)
+        model.compile(optimizer=adam, loss='categorical_crossentropy', metrics=['accuracy'])
 
         return model
 
