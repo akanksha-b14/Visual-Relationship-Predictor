@@ -40,8 +40,8 @@ for i, (input_video, target_text) in enumerate(zip(input_videos, target_texts)):
         if t > 0:
             decoder_input_data[i, t] = decoder_target_data[i, t-1]
 
-batch_size = 5
-epochs = 8
+batch_size = 32
+epochs = 10
 model = encoder_decoder.load_training_model()
 print(model.summary())
 model.fit([encoder_input_data, decoder_input_data], decoder_target_data,
@@ -50,7 +50,7 @@ model.fit([encoder_input_data, decoder_input_data], decoder_target_data,
 
 
 # training model on the augmented data
-batch_size = 5
+batch_size = 32
 epochs = 2
 random.shuffle(video_ids)
 for j in range(0, 10):
